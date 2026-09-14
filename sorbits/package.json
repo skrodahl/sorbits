@@ -1,0 +1,15 @@
+{
+  "name": "sorbits",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Sorbits — pilot an electron through a living atom; dodge red photons, harvest gold, keep the atom coherent.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

@@ -1,0 +1,718 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SORBITS — full loop</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#030309;font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif;color:#dfe6ff}
+  #c{position:fixed;inset:0;width:100%;height:100%;display:block}
+  .overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;background:rgba(3,3,12,.78);backdrop-filter:blur(9px);transition:opacity .3s;z-index:10}
+  .hidden{opacity:0;pointer-events:none}
+  h1{font-size:68px;font-weight:200;letter-spacing:24px;margin:0;color:#fff;text-shadow:0 0 26px rgba(95,230,255,.6)}
+  .sub{font-size:13px;letter-spacing:4px;text-transform:uppercase;color:#8ea0d0;margin:0}
+  .guide{display:grid;grid-template-columns:auto auto;gap:6px 22px;margin-top:14px;font-size:12.5px;color:#93a4d4;text-align:left;line-height:1.5}
+  .guide .k{font-family:ui-monospace,monospace;color:#5fe6ff;letter-spacing:1px;white-space:nowrap}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle}
+  .play{margin-top:22px;font-size:13px;letter-spacing:3px;color:#5fe6ff;border:1px solid rgba(95,230,255,.4);border-radius:99px;padding:11px 26px;background:rgba(12,16,40,.5);cursor:pointer;font:inherit}
+  .play:hover{box-shadow:0 0 26px rgba(64,200,255,.3);border-color:rgba(95,230,255,.8)}
+  .hint{font-size:11px;letter-spacing:1.5px;color:#5b6a99;margin-top:18px}
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:5;display:none}
+  #hud .row{position:absolute;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:16px 24px}
+  #hud .top{top:0}#hud .bot{bottom:0;align-items:flex-end}
+  #lvl{font-size:11px;letter-spacing:3px;color:#8ea0d0}
+  #godwrap{position:absolute;top:64px;left:50%;transform:translateX(-50%);text-align:center;display:none}
+  #god{font-size:15px;letter-spacing:6px;color:#ffe9a8;text-shadow:0 0 16px rgba(255,200,90,.8)}
+  #godbar{width:180px;height:4px;background:rgba(255,200,90,.15);border-radius:99px;overflow:hidden;margin-top:7px}
+  #godfill{height:100%;width:100%;background:linear-gradient(90deg,#ffd97a,#ffb84d);box-shadow:0 0 10px rgba(255,200,100,.7)}
+  #score{font-size:26px;font-weight:300;letter-spacing:2px;color:#fff;text-shadow:0 0 12px rgba(95,230,255,.5);text-align:right}
+  #time{font-size:12px;letter-spacing:2px;color:#8ea0d0;text-align:right}
+  #pw{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;z-index:5}
+  #pw label{font-size:11px;letter-spacing:5px;color:#8ea0d0}
+  #gauge{width:340px;height:14px;border-radius:99px;background:rgba(95,230,255,.06);border:1px solid rgba(95,230,255,.28);overflow:hidden;position:relative}
+  #gfill{height:100%;width:34%;background:#5fe6ff;box-shadow:0 0 12px rgba(95,230,255,.6);transition:width .12s ease,background .2s ease}
+  #gtick{position:absolute;top:1px;bottom:1px;right:2px;width:2px;background:rgba(255,255,255,.5);border-radius:2px}
+  #pw.low #gfill{animation:lowPulse .9s ease-in-out infinite}
+  @keyframes lowPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.9)}}
+  #sanc{position:absolute;bottom:34px;right:28px;font-size:11px;letter-spacing:4px;color:#9fdcff;display:none;text-shadow:0 0 12px rgba(120,220,255,.8)}
+  #over .big{font-size:42px;font-weight:200;letter-spacing:14px;color:#fff;text-shadow:0 0 22px rgba(255,90,120,.55)}
+  #over p{margin:5px 0;font-size:14px;color:#93a4d4;letter-spacing:1px}
+  #toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);z-index:6;font-size:12px;letter-spacing:3px;color:#cfe6ff;background:rgba(10,14,34,.6);border:1px solid rgba(120,160,255,.2);padding:8px 18px;border-radius:99px;opacity:0;transition:opacity .5s;pointer-events:none;text-transform:uppercase}
+  #dev{position:fixed;top:56px;right:24px;z-index:6;display:none;text-align:right;font:10px/1.8 ui-monospace,monospace;letter-spacing:1px;color:#8ea0d0;background:rgba(6,8,20,.55);border:1px solid rgba(120,160,255,.15);border-radius:8px;padding:8px 12px;pointer-events:none}
+  #dev b{color:#5fe6ff;font-weight:400}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="menu" class="overlay">
+  <h1>SORBITS</h1>
+  <p class="sub">keep the atom coherent</p>
+  <div class="guide">
+    <span><i class="dot" style="background:#ff4d6a;box-shadow:0 0 7px #ff4d6a"></i>red photons fall in — stay out of the way</span>
+    <span><i class="dot" style="background:#ffd97a;box-shadow:0 0 7px #ffd97a"></i>gold rides out of the core — catch it to charge</span>
+    <span><i class="dot" style="background:#b48cff;box-shadow:0 0 7px #b48cff"></i>full charge = god mode, then the atom heats up</span>
+    <span><i class="dot" style="background:#9fdcff;box-shadow:0 0 7px #9fdcff"></i>a quasar opens a sanctuary — it swallows the reds</span>
+  </div>
+  <button class="play" id="play">CLICK OR PRESS ANY KEY</button>
+  <p class="hint">&uarr;/&darr; hop rings &middot; &larr;/&rarr; steer &middot; M sound &middot; F dev stats &middot; mockup v4 — the loop is real, the numbers will change</p>
+</div>
+
+<div id="hud">
+  <div class="row top">
+    <div><span id="lvl">LEVEL 1</span></div>
+    <div><div id="score">0</div><div id="time">0s</div></div>
+  </div>
+  <div id="godwrap"><div id="god">GOD MODE</div><div id="godbar"><div id="godfill"></div></div></div>
+  <div class="row bot"><span></span><div id="sanc">SANCTUARY</div></div>
+  <div id="pw"><label>POWER</label><div id="gauge"><div id="gfill"></div><div id="gtick"></div></div></div>
+</div>
+
+<div id="over" class="overlay hidden">
+  <div class="big">SIGNAL LOST</div>
+  <p id="cause"></p>
+  <p id="stats"></p>
+  <p class="hint">R retry &middot; ESC menu</p>
+</div>
+
+<div id="toast"></div>
+
+<div id="dev"></div>
+
+<script>
+'use strict';
+const cvs=document.getElementById('c'),ctx=cvs.getContext('2d');
+const $=id=>document.getElementById(id);
+const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t;
+let W,H,DPR,bg,twinkles=[],dust=[];
+let cx,cy,maxR,minR,N=5,ringR=[],gap=0,coreR=0;
+let POSE={breath:1};
+const RING_POSE={sq:[],rot:[]}; // shared shape + per-ring orientation: same orbit, different planes
+function poseOf(t){ // 3D pose: every ring shares ONE shape (same squash) so the atom reads
+  // as a coherent family of orbits; the *planes* differ by orientation — a smooth
+  // twist through the stack plus a slow per-ring drift ("slightly different planes",
+  // not "different shapes"). Gentle scale/squash breath keeps it alive.
+  POSE.breath=1+0.02*Math.sin(t*1.14);
+  const sq=0.82+0.035*Math.sin(t*0.5); // one shared squash (all rings the same shape)
+  for(let i=0;i<N;i++){
+    const u=N>1?i/(N-1):0.5;
+    RING_POSE.sq[i]=sq;
+    RING_POSE.rot[i]=0.3*(u-0.5)+0.05*Math.sin(t*0.3+i*1.3); // twist + slow drift
+  }
+  return POSE;
+}
+// project an orbital angle on a given ring to screen (that ring's own tilt)
+function project(angle,ringIdx,radius){
+  const sq=RING_POSE.sq[ringIdx],rot=RING_POSE.rot[ringIdx],b=POSE.breath;
+  const ex=Math.cos(angle)*radius*b,ey=Math.sin(angle)*radius*sq*b;
+  const cr=Math.cos(rot),sr=Math.sin(rot);
+  return{x:cx+ex*cr-ey*sr,y:cy+ex*sr+ey*cr};
+}
+
+function resize(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  W=innerWidth;H=innerHeight;
+  cvs.width=W*DPR;cvs.height=H*DPR;
+  layout();makeBG();
+  twinkles=Array.from({length:26},()=>({x:Math.random()*W,y:Math.random()*H,ph:Math.random()*TAU,sp:0.6+Math.random()*1.6,r:0.8+Math.random()*1.4}));
+  dust=Array.from({length:12},()=>({x0:Math.random()*W,y0:Math.random()*H,vx:rand(-4,4),vy:rand(-4,4),
+    ph:Math.random()*TAU,sp:0.3+Math.random()*0.5,r:0.6+Math.random()*0.8,al:0.04+Math.random()*0.08}));
+}
+function layout(){
+  cx=W/2;cy=H/2;maxR=Math.min(W,H)*0.42;minR=Math.max(64,maxR*0.26);
+  ringR=Array.from({length:N},(_,i)=>minR+(maxR-minR)*i/(N-1));gap=(maxR-minR)/(N-1);coreR=minR*0.5;
+}
+function makeBG(){
+  bg=document.createElement('canvas');bg.width=W*DPR;bg.height=H*DPR;
+  const b=bg.getContext('2d');b.scale(DPR,DPR);
+  const g=b.createRadialGradient(cx,cy,0,cx,cy,Math.max(W,H)*0.75);
+  g.addColorStop(0,'#0c0c24');g.addColorStop(0.5,'#070716');g.addColorStop(1,'#030309');
+  b.fillStyle=g;b.fillRect(0,0,W,H);
+  const neb=(x,y,r,c)=>{const n=b.createRadialGradient(x,y,0,x,y,r);n.addColorStop(0,c);n.addColorStop(1,'rgba(0,0,0,0)');b.fillStyle=n;b.fillRect(0,0,W,H);};
+  neb(W*0.30,H*0.25,Math.max(W,H)*0.5,'rgba(92,62,190,0.11)');
+  neb(W*0.72,H*0.70,Math.max(W,H)*0.45,'rgba(38,140,180,0.09)');
+  neb(W*0.62,H*0.32,Math.max(W,H)*0.30,'rgba(205,80,160,0.05)');
+  for(let i=0;i<220;i++){b.globalAlpha=Math.random()*0.45+0.08;b.fillStyle='#cfd8ff';b.beginPath();b.arc(Math.random()*W,Math.random()*H,Math.random()*1.2+0.2,0,TAU);b.fill();}
+  b.globalAlpha=1;
+}
+addEventListener('resize',resize);
+
+// ---------- config ----------
+// power gauge (gas tank): continuous, forgiving; target grows per level (easy early, steep late)
+const C={drainBase:0.0015,           // floor drain (fraction of target/s) — very forgiving early
+  drainHeatSlope:0.017,             // extra drain per unit of heat — steepens into surges / late levels
+  resetFraction:0.34,               // gauge resets to ~⅓ on level-up
+  targetBase:1.0,targetGrowth:1.25, // "full" mark grows each level (steep, but supply scales too)
+  goldGain:0.15,redLoss:0.22,       // fractional power per gold caught / photon strike
+  goldSpawn:2.2,goldMax:4,
+  goldSpawnLvlDecay:0.15,          // per level, gold spawns faster (supply keeps up with target)
+  goldMaxLvlGrow:1,                // per level, one more gold may be on screen
+  godTime:8,
+  goldVal:25,godGoldMul:5,godRedVal:10,survivalVal:10,
+  photonTrail:0.5,
+  sancFloor:6,sancDivisor:24,sancHalf:0.62,sancOrbit:0.22,sancWobble:0.14,
+  quasarMin:22,quasarVar:13,
+  photonHitR:14,goldHitR:17,quasarHitR:18,
+  // ring-capture motion: particles orbit a ring a random number of turns, then shell-hop
+  angVelMin:0.9,angVelMax:1.6,
+  goldOrbitsMin:1.4,goldOrbitsMax:2.6,      // gold lingers (long)
+  redOrbitsMin:0.35,redOrbitsMax:0.9,       // reds are quick (short)
+  quasarOrbitsMin:0.6,quasarOrbitsMax:1.4,
+  goldStayLvlDecay:0.16,                    // per level, gold stays shorter
+  redStayLvlGrow:0.34};                     // per level, reds stay longer
+
+// ---------- state ----------
+const S={over:false,paused:false,t:0,score:0,goldGot:0,
+  power:C.resetFraction*C.targetBase,level:1,heat:0.25,
+  gods:0,deaths:0,deathCause:null,
+  god:0,godActive:false,
+  invuln:0,slowT:0,flash:0,gflash:0,shake:0,lastDamage:null,
+  surge:0,surgeT:5,
+  e:{ring:1,angle:-Math.PI/2,r:0,angVel:0,trail:[]},
+  photons:[],golds:[],parts:[],pulses:[],shocks:[],sucks:[],
+  quasar:null,quasarT:14,
+  sanc:null,
+  spawnT:2.5,goldT:1.5};
+const keys={l:false,r:false};
+let devOn=false;
+
+function reset(){
+  S.over=false;S.t=0;S.score=0;S.goldGot=0;
+  S.level=1;S.power=C.resetFraction*pTarget();S.heat=0.25;
+  S.god=0;S.godActive=false;
+  S.invuln=1.2;S.slowT=0;S.flash=0;S.gflash=0;S.shake=0;S.lastDamage=null;
+  S.surge=0;S.surgeT=6;
+  S.e={ring:1,angle:-Math.PI/2,r:ringR[1],angVel:0,trail:[]};
+  S.photons=[];S.golds=[];S.parts=[];S.pulses=[];S.shocks=[];S.sucks=[];
+  S.quasar=null;S.quasarT=C.quasarMin;
+  S.sanc=null;S.spawnT=3;S.goldT=1.5;
+}
+function start(){
+  reset();S.paused=false;
+  $('menu').classList.add('hidden');$('over').classList.add('hidden');$('hud').style.display='block';
+  ensureAudio();queueToasts();
+}
+function toMenu(){S.paused=true;S.over=false;
+  $('menu').classList.remove('hidden');$('over').classList.add('hidden');$('hud').style.display='none';}
+function gameOver(){
+  S.over=true;S.deaths++;S.deathCause=S.lastDamage;
+  $('cause').textContent=S.lastDamage==='photon'?'ionized by a photon':'coherence decayed';
+  $('stats').textContent='level '+S.level+' · survived '+Math.floor(S.t)+'s · score '+Math.floor(S.score);
+  $('over').classList.remove('hidden');
+}
+
+// ---------- toasts ----------
+let toasts=[],toastI=0;
+function queueToasts(){toasts=[
+  {at:1.5,txt:'GOLD CHARGES THE ATOM · RED DRAINS IT'},
+  {at:6,txt:'DON’T LET THE CORE DIM — POWER 0 IS GAME OVER'},
+  {at:12,txt:'FULL CHARGE = GOD MODE, THEN THE ATOM HEATS'},
+  {at:19,txt:'GRAB THE QUASAR → SANCTUARY (SAFETY, BUT GOLD IS LOST)'},
+];toastI=0;}
+function tickToasts(dt){
+  if(toastI<toasts.length&&S.t>=toasts[toastI].at){
+    const el=$('toast');el.textContent=toasts[toastI].txt;el.style.opacity=1;
+    setTimeout(()=>el.style.opacity=0,3400);toastI++;
+  }
+}
+
+// ---------- input ----------
+addEventListener('keydown',e=>{
+  if(e.code==='KeyM'){A.on=!A.on;if(A.ac)A.master.gain.value=A.on?0.5:0;return;}
+  if(e.code==='KeyF'){devOn=!devOn;$('dev').style.display=devOn?'block':'none';return;}
+  if(e.code==='Escape'){toMenu();return;}
+  if(S.over){if(e.code==='KeyR')start();return;}
+  if(S.paused){start();return;}
+  if(e.code==='ArrowLeft'||e.code==='KeyA')keys.l=true;
+  if(e.code==='ArrowRight'||e.code==='KeyD')keys.r=true;
+  if(e.code==='ArrowUp'||e.code==='KeyW')hop(1);
+  if(e.code==='ArrowDown'||e.code==='KeyS')hop(-1);
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();
+});
+addEventListener('keyup',e=>{
+  if(e.code==='ArrowLeft'||e.code==='KeyA')keys.l=false;
+  if(e.code==='ArrowRight'||e.code==='KeyD')keys.r=false;
+});
+$('play').addEventListener('click',start);
+cvs.addEventListener('pointerdown',()=>{if(S.paused&&!S.over)start();});
+
+function hop(dir){
+  if(S.over||S.paused)return;
+  const nr=((S.e.ring+dir)%N+N)%N; // wrap: up from outer -> inner, down from inner -> outer
+  if(nr!==S.e.ring){S.e.ring=nr;burst(ePos(),10,'#7ef0ff',1.8);}
+}
+
+// ---------- helpers ----------
+function rand(a,b){return a+Math.random()*(b-a);}
+function ePos(){return project(S.e.angle,S.e.ring,S.e.r);}
+function pPos(p){return project(p.angle,p.ring,p.r!==undefined?p.r:ringR[p.ring]);} // particles glide radially (p.r)
+function angDiff(a,b){let d=(b-a)%TAU;if(d>Math.PI)d-=TAU;if(d<-Math.PI)d+=TAU;return d;}
+function inSanc(angle){return S.sanc&&Math.abs(angDiff(angle,S.sanc.angle))<C.sancHalf;}
+function angVelOf(heat){const dir=Math.random()<0.5?-1:1;return dir*rand(C.angVelMin,C.angVelMax)*(0.8+0.5*clamp(heat,0,1.3));}
+function pTarget(){return C.targetBase*Math.pow(C.targetGrowth,S.level-1);} // "full" mark for the current level
+function drainOf(){return C.drainBase+C.drainHeatSlope*clamp(S.heat,0,1.5);} // drain (frac of target/s): gentle early → steep late
+function gaugeColor(f){ // the one indicator of "how you're doing": 0=red, 0.5=amber, 1=cyan
+  f=clamp(f,0,1);
+  const stops=[[255,93,122],[255,180,84],[75,232,255]];
+  const seg=f<0.5?0:1,t=f<0.5?f/0.5:(f-0.5)/0.5,a=stops[seg],b=stops[seg+1];
+  return'rgb('+Math.round(a[0]+(b[0]-a[0])*t)+','+Math.round(a[1]+(b[1]-a[1])*t)+','+Math.round(a[2]+(b[2]-a[2])*t)+')';
+}
+function goldSpawnIv(){return Math.max(1.2,C.goldSpawn*(1-C.goldSpawnLvlDecay*(S.level-1)));} // supply scales up with level
+function effGoldMax(){return Math.min(7,C.goldMax+C.goldMaxLvlGrow*(S.level-1));}
+function stayRad(type){
+  let o;
+  if(type==='gold')o=rand(C.goldOrbitsMin,C.goldOrbitsMax)*Math.max(0.35,1-C.goldStayLvlDecay*(S.level-1));
+  else if(type==='quasar')o=rand(C.quasarOrbitsMin,C.quasarOrbitsMax);
+  else o=rand(C.redOrbitsMin,C.redOrbitsMax)*(1+C.redStayLvlGrow*(S.level-1));
+  return o*TAU;
+}
+function burst(x,y,n,col,sp){
+  for(let i=0;i<n;i++){const a=Math.random()*TAU,s=(0.4+Math.random())*sp*60;
+    S.parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0.5+Math.random()*0.5,max:1,col,size:1+Math.random()*2});}
+}
+// power-event FX: 'hit' = strike at a point (outward shock), 'decay' = passive loss at the core,
+// 'in' = gain: motes drawn from the cosmos into the core + contracting ring
+function shockFX(kind,x,y,ring){
+  if(kind==='hit')S.shocks.push({x,y,t:0,dur:0.5,min:8,max:74,rgb:'255,110,140',plane:true,ring:ring});
+  else if(kind==='decay')S.shocks.push({x:cx,y:cy,t:0,dur:0.8,min:coreR*0.4,max:coreR*0.4+gap*1.6,rgb:'190,170,255',plane:true,ring:0});
+  else if(kind==='in'){
+    S.shocks.push({x:cx,y:cy,t:0,dur:0.6,min:coreR*0.5,max:maxR*0.55,rgb:'255,217,122',inward:true,plane:true,ring:0});
+    const n=10+Math.floor(Math.random()*5);
+    for(let i=0;i<n;i++)
+      S.sucks.push({a:Math.random()*TAU,r0:Math.max(W,H)*0.45+20,t:0,dur:0.5+Math.random()*0.3});
+  }
+}
+
+// ---------- audio (generative) ----------
+const A={ac:null,on:true,master:null,droneGain:null,filter:null,shimmer:null};
+function ensureAudio(){
+  if(A.ac)return;
+  try{
+    A.ac=new (window.AudioContext||window.webkitAudioContext)();
+    A.master=A.ac.createGain();A.master.gain.value=A.on?0.5:0;A.master.connect(A.ac.destination);
+    const o1=A.ac.createOscillator(),o2=A.ac.createOscillator();o1.type='sawtooth';o2.type='sawtooth';
+    o1.frequency.value=54;o2.frequency.value=54.7;
+    A.filter=A.ac.createBiquadFilter();A.filter.type='lowpass';A.filter.frequency.value=300;A.filter.Q.value=6;
+    A.droneGain=A.ac.createGain();A.droneGain.gain.value=0.03;
+    o1.connect(A.filter);o2.connect(A.filter);A.filter.connect(A.droneGain);A.droneGain.connect(A.master);
+    o1.start();o2.start();
+  }catch(e){A.ac=null;}
+}
+function blip(f0,f1,dur,vol,type='sine'){
+  if(!A.ac||!A.on)return;const o=A.ac.createOscillator(),g=A.ac.createGain();o.type=type;
+  o.frequency.setValueAtTime(f0,A.ac.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(1,f1),A.ac.currentTime+dur);
+  g.gain.setValueAtTime(vol,A.ac.currentTime);g.gain.exponentialRampToValueAtTime(0.0001,A.ac.currentTime+dur);
+  o.connect(g);g.connect(A.master);o.start();o.stop(A.ac.currentTime+dur+0.02);
+}
+const sGold=()=>blip(1320,520,0.2,0.16);
+const sHit=()=>blip(150,45,0.3,0.3);
+const sQuasar=()=>blip(2200,1800,0.4,0.12,'triangle');
+const sGod=()=>blip(200,900,0.6,0.2,'sawtooth');
+// power events made physical: OUT = losing (deflation whoosh), IN = gaining (rising inhale)
+const sLose=()=>blip(220,50,0.45,0.28,'triangle');
+const sGain=()=>blip(320,880,0.4,0.2,'sine');
+// god-mode: a sustained bright shimmer while active
+function startShimmer(){
+  if(!A.ac||A.shimmer)return;
+  const o=A.ac.createOscillator(),g=A.ac.createGain();
+  o.type='sine';o.frequency.value=1174;
+  g.gain.value=0.012;
+  o.connect(g);g.connect(A.master);o.start();
+  A.shimmer={o,g};
+}
+function stopShimmer(){
+  if(!A.shimmer)return;
+  A.shimmer.g.gain.setTargetAtTime(0.0001,A.ac.currentTime,0.25);
+  A.shimmer.o.stop(A.ac.currentTime+1);
+  A.shimmer=null;
+}
+
+// ---------- update ----------
+function update(dt){
+  if(S.paused||S.over)return;
+  const sdt=dt*(S.slowT>0?0.3:1);
+  S.t+=sdt;S.score+=dt*C.survivalVal;
+  S.invuln=Math.max(0,S.invuln-dt);S.slowT=Math.max(0,S.slowT-dt);
+  S.flash=Math.max(0,S.flash-dt*2);S.gflash=Math.max(0,S.gflash-dt*1.5);
+  S.shake=Math.max(0,S.shake-dt*14);
+  tickToasts(dt);
+
+  // heat model: base (level) + surge envelope
+  const baseH=Math.min(1,0.25+(S.level-1)*0.22);
+  S.surgeT-=sdt;
+  if(S.surgeT<=0&&!S.godActive){S.surge=3.5;S.surgeT=9+Math.random()*5;}
+  if(S.surge>0)S.surge=Math.max(0,S.surge-sdt);
+  const surgeH=S.surge>0?0.35*Math.sin(Math.PI*(1-S.surge/3.5)):0;
+  S.heat=baseH+surgeH;
+  if(A.ac&&A.droneGain){
+    let fc=250+S.heat*1400;
+    let dg=S.godActive?0.09:0.03+S.heat*0.05;
+    if(S.surge>0&&!S.godActive){ // surge: rhythmic pulse riding the drone
+      const pu=0.5+0.5*Math.sin(A.ac.currentTime*TAU*1.1);
+      dg*=0.7+0.6*pu;
+    }
+    if(S.sanc){fc=Math.min(fc,600);dg*=0.75;} // sanctuary: softened, darker register
+    A.filter.frequency.setTargetAtTime(fc,A.ac.currentTime,0.4);
+    A.droneGain.gain.setTargetAtTime(dg,A.ac.currentTime,0.4);
+  }
+
+  // passive coherence drain: continuous gas-tank drain, forgiving; heat adds pressure
+  if(!S.godActive){
+    S.power-=drainOf()*pTarget()*sdt;
+    S.lastDamage='decay';
+    if(S.power<=0){S.power=0;shockFX('decay');sLose();gameOver();return;}
+  }
+
+  // power packets ride out of the core (reliable supply, scales up with level)
+  S.goldT-=sdt;
+  if(S.goldT<=0&&S.golds.length<effGoldMax()){S.goldT=goldSpawnIv();spawnGold();}
+
+  // electron motion: auto-orbit + steer
+  const r=ringR[S.e.ring];
+  let av=1.7*Math.pow(ringR[0]/r,1.3);
+  if(keys.l)S.e.angVel-=4.5*sdt;
+  if(keys.r)S.e.angVel+=4.5*sdt;
+  S.e.angVel*=Math.exp(-1.1*sdt);
+  S.e.angVel=clamp(S.e.angVel,-2.6,2.6);
+  S.e.angle=(S.e.angle+(av+S.e.angVel)*sdt)%TAU;
+  S.e.r+=(r-S.e.r)*Math.min(1,sdt*9);
+  const p=ePos();
+  S.e.trail.push({x:p.x,y:p.y,life:1});
+  if(S.e.trail.length>55)S.e.trail.shift();
+  for(const t of S.e.trail)t.life-=sdt*1.6;
+
+  // photons: caught by a ring, orbit a random number of turns, then shell-hop inward
+  S.spawnT-=sdt;
+  if(S.spawnT<=0){S.spawnT=4.5-3.0*clamp(S.heat,0,1.3);spawnPhoton();}
+  for(let i=S.photons.length-1;i>=0;i--){
+    const q=S.photons[i];
+    q.angle=(q.angle+q.angVel*sdt)%TAU;
+    q.stay-=Math.abs(q.angVel)*sdt;
+    if(q.stay<=0){
+      q.ring--;
+      if(q.ring<0){ // reaches the core: the only auto-removal
+        S.photons.splice(i,1);S.pulses.push({life:1});
+        if(Math.random()<0.16)spawnGold(); // annihilation leaks a little power out
+        continue;
+      }
+      q.stay=stayRad('photon'); // re-rolled for the new (inner) ring
+    }
+    q.r+=(ringR[q.ring]-q.r)*Math.min(1,sdt*9); // glide between rings (no quantum leap)
+    const qp=pPos(q);
+    if(!q.trail)q.trail=[];
+    q.trail.push({x:qp.x,y:qp.y,life:1}); // motion trail
+    if(q.trail.length>16)q.trail.shift();
+    for(const t of q.trail)t.life-=sdt*3.5;
+    if(inSanc(q.angle)){ // the sanctuary absorbs reds that enter it — cleanup, no reward
+      S.photons.splice(i,1);burst(qp.x,qp.y,7,'#8fa8c8',0.9);continue;
+    }
+    if(Math.hypot(qp.x-p.x,qp.y-p.y)<C.photonHitR){
+      if(S.godActive){ // plow: destroy for points
+        S.photons.splice(i,1);S.score+=C.godRedVal;burst(qp.x,qp.y,14,'#ffd97a',2.2);continue;
+      }
+      if(S.invuln>0)continue;
+      S.photons.splice(i,1);S.power-=C.redLoss;S.lastDamage='photon';
+      S.invuln=1;S.slowT=0.28;S.flash=0.5;S.shake=9;burst(p.x,p.y,18,'#ff4d6a',2.4);
+      shockFX('hit',p.x,p.y,S.e.ring);sHit();sLose();
+      if(S.power<=0){gameOver();return;}
+    }
+  }
+
+  // gold: power packets ride out of the core — caught by a ring, orbit, then shell-hop outward
+  for(let i=S.golds.length-1;i>=0;i--){
+    const g=S.golds[i];
+    g.angle=(g.angle+g.angVel*sdt)%TAU;
+    g.stay-=Math.abs(g.angVel)*sdt;
+    if(g.stay<=0){
+      g.ring++;
+      if(g.ring>=N){ // rides out past the outer ring: disappears as photons
+        const pp=project(g.angle,N-1,maxR+16); // just outside the outer ring's own tilt
+        S.golds.splice(i,1);burst(pp.x,pp.y,6,'#cfe6ff',0.8);continue;
+      }
+      g.stay=stayRad('gold'); // re-rolled for the new (outer) ring
+    }
+    g.r+=(ringR[g.ring]-g.r)*Math.min(1,sdt*9); // glide between rings (no quantum leap)
+    const gp=pPos(g);
+    if(!g.trail)g.trail=[];
+    g.trail.push({x:gp.x,y:gp.y,life:1}); // motion trail
+    if(g.trail.length>16)g.trail.shift();
+    for(const t of g.trail)t.life-=sdt*3.5;
+    if(Math.hypot(gp.x-p.x,gp.y-p.y)<C.goldHitR){
+      S.golds.splice(i,1);
+      if(S.godActive){S.score+=C.goldVal*C.godGoldMul;burst(gp.x,gp.y,20,'#ffd97a',2.6);sGold();continue;}
+      // gold behaves identically inside or outside the sanctuary: power + points
+      S.power=Math.min(pTarget(),S.power+C.goldGain);S.score+=C.goldVal;S.goldGot++;burst(gp.x,gp.y,14,'#ffd97a',1.8);sGold();
+      shockFX('in');sGain();
+      if(S.power>=pTarget()&&!S.godActive){S.godActive=true;S.god=C.godTime;S.gflash=0.4;S.gods++;sGod();startShimmer();}
+    }
+  }
+
+  // quasar (rare) — caught by the outer ring, orbits, shell-hops inward like a red
+  if(S.quasar){
+    const q=S.quasar;
+    q.angle=(q.angle+q.angVel*sdt)%TAU;q.ph+=sdt*5;
+    q.stay-=Math.abs(q.angVel)*sdt;
+    if(q.stay<=0){
+      q.ring--;
+      if(q.ring<0){S.quasar=null;S.pulses.push({life:1});} // missed: absorbed by the core
+      else q.stay=stayRad('quasar');
+    }
+    if(S.quasar){
+      q.r+=(ringR[q.ring]-q.r)*Math.min(1,sdt*9); // glide between rings (same as photons/gold)
+      const qp=pPos(S.quasar);
+      if(Math.hypot(qp.x-p.x,qp.y-p.y)<C.quasarHitR){
+        S.quasar=null;
+        S.sanc={angle:S.e.angle,ph:Math.random()*TAU,sp:0.5+Math.random()*0.7,t:0,
+          dur:clamp(C.sancDivisor/S.power,C.sancFloor,C.sancDivisor)}; // duration ∝ 1/power (floored)
+        burst(p.x,p.y,26,'#9fdcff',3);
+      }
+    }
+  }else{
+    S.quasarT-=sdt;
+    if(S.quasarT<=0){S.quasar={ring:N-1,angle:Math.random()*TAU,angVel:angVelOf(S.heat),stay:stayRad('quasar'),ph:Math.random()*TAU,r:ringR[N-1]};
+      S.quasarT=C.quasarMin+Math.random()*C.quasarVar;sQuasar();}
+  }
+
+  // sanctuary: orbit + slight irregular wobble, decay at the end
+  if(S.sanc){
+    S.sanc.t+=sdt;
+    S.sanc.angle=(S.sanc.angle+(C.sancOrbit+C.sancWobble*Math.sin(S.sanc.ph+=sdt*0.9))*sdt)%TAU;
+    if(S.sanc.t>=S.sanc.dur)S.sanc=null;
+  }
+
+  // god mode end -> level up (heat +1), power reset
+  if(S.godActive){
+    S.god-=sdt;
+    if(S.god<=0){S.godActive=false;S.level++;S.power=C.resetFraction*pTarget();stopShimmer();}
+  }
+
+  for(const q of S.parts){q.x+=q.vx*sdt;q.y+=q.vy*sdt;q.life-=sdt;q.vx*=0.96;q.vy*=0.96;}
+  S.parts=S.parts.filter(q=>q.life>0);
+  for(const q of S.pulses)q.life-=sdt*1.6;
+  S.pulses=S.pulses.filter(q=>q.life>0);
+  for(const q of S.shocks)q.t+=sdt;
+  S.shocks=S.shocks.filter(q=>q.t<q.dur);
+  for(const q of S.sucks)q.t+=sdt;
+  S.sucks=S.sucks.filter(q=>q.t<q.dur);
+
+  // hud
+  $('score').textContent=Math.floor(S.score);
+  $('time').textContent=Math.floor(S.t)+'s';
+  $('lvl').textContent='LEVEL '+S.level;
+  {const pf=S.power/pTarget(),gc=gaugeColor(pf);
+   $('gfill').style.width=clamp(pf*100,0,100)+'%';
+   $('gfill').style.background=gc;
+   $('gfill').style.boxShadow='0 0 12px '+gc;
+   $('pw').classList.toggle('low',pf<0.22);}
+  if(S.godActive){$('godwrap').style.display='block';$('godfill').style.width=(S.god/C.godTime*100)+'%';}
+  else $('godwrap').style.display='none';
+  $('sanc').style.display=S.sanc?'block':'none';
+  if(devOn){
+    const drain=drainOf()*pTarget();
+    $('dev').innerHTML='T '+Math.floor(S.t)+'s · LVL '+S.level+' · GODS '+S.gods+
+      '<br>PWR <b>'+S.power.toFixed(2)+'</b> / '+pTarget().toFixed(2)+' · HEAT '+S.heat.toFixed(2)+
+      '<br>DRAIN '+drain.toFixed(3)+'/s · PHOTONS '+S.photons.length+' · GOLD '+S.golds.length+
+      '<br>DEATHS '+S.deaths+(S.deathCause?' ('+S.deathCause+')':'');
+  }
+}
+function spawnPhoton(){
+  const a=Math.random()*TAU;
+  S.photons.push({ring:N-1,angle:a,angVel:angVelOf(S.heat),stay:stayRad('photon'),trail:[],r:ringR[N-1]});
+  if(S.level>=3&&Math.random()<0.3) // later levels: a close companion on the same ring
+    S.photons.push({ring:N-1,angle:a+0.25,angVel:angVelOf(S.heat),stay:stayRad('photon'),trail:[],r:ringR[N-1]});
+}
+function spawnGold(){S.golds.push({ring:0,angle:Math.random()*TAU,angVel:angVelOf(S.heat),stay:stayRad('gold'),trail:[],r:ringR[0]});}
+
+// ---------- draw ----------
+function glow(x,y,r,inner,outer){
+  const g=ctx.createRadialGradient(x,y,0,x,y,r);
+  g.addColorStop(0,inner);g.addColorStop(1,outer);
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill();
+}
+function draw(t){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  // serene cosmos: slow Lissajous drift + scale-breath (clearly alive, but calm)
+  const bx=8*Math.sin(t*0.31),by=6*Math.sin(t*0.37+1.3),bs=1+0.015*Math.sin(t*0.63);
+  ctx.save();
+  ctx.translate(cx,cy);ctx.scale(bs,bs);ctx.translate(-cx+bx,-cy+by);
+  ctx.drawImage(bg,0,0,W,H);
+  ctx.restore();
+  if(S.shake>0)ctx.translate((Math.random()-0.5)*S.shake,(Math.random()-0.5)*S.shake);
+  ctx.globalCompositeOperation='lighter';
+  for(const s of twinkles){const a=0.1+0.4*(0.5+0.5*Math.sin(t*s.sp+s.ph));ctx.globalAlpha=a;ctx.fillStyle='#bcd0ff';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,TAU);ctx.fill();}
+  for(const d of dust){
+    const x=(((d.x0+d.vx*t)%W)+W)%W,y=(((d.y0+d.vy*t)%H)+H)%H;
+    ctx.globalAlpha=d.al*(0.6+0.4*Math.sin(t*d.sp+d.ph));
+    ctx.fillStyle='#9fb4e8';
+    ctx.beginPath();ctx.arc(x,y,d.r,0,TAU);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  // sanctuary wedge (emitted from core, slowly orbiting + wobble, desaturated cyan)
+  if(S.sanc){
+    const s=S.sanc,rem=s.dur-s.t,fade=(rem<3?rem/3:1)*(0.6+0.4*Math.sin(t*9)*(rem<3?1:0.2));
+    // wedge tilts with the orbital plane (drawn in the outermost ring's pose; its outer edge
+    // aligns with the outer ring — the sanctuary's *logic* stays purely angular)
+    const oq=RING_POSE.sq[N-1],orot=RING_POSE.rot[N-1];
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate(orot);
+    ctx.scale(POSE.breath,oq*POSE.breath);
+    const grad=ctx.createRadialGradient(0,0,coreR,0,0,maxR);
+    grad.addColorStop(0,'rgba(159,220,255,'+(0.16*fade)+')');
+    grad.addColorStop(1,'rgba(159,220,255,0)');
+    ctx.fillStyle=grad;
+    ctx.beginPath();ctx.moveTo(0,0);
+    ctx.arc(0,0,maxR,s.angle-C.sancHalf,s.angle+C.sancHalf);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(159,220,255,'+(0.35*fade)+')';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(0,0,coreR,s.angle-C.sancHalf,s.angle+C.sancHalf);ctx.stroke();
+    ctx.restore();
+  }
+
+  for(let i=0;i<N;i++){
+    const b=POSE.breath,rx=ringR[i]*b,ry=ringR[i]*RING_POSE.sq[i]*b,rot=RING_POSE.rot[i];
+    ctx.strokeStyle=i===S.e.ring?'rgba(95,230,255,0.4)':'rgba(120,150,255,0.18)';
+    ctx.lineWidth=i===S.e.ring?1.5:1;ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,rot,0,TAU);ctx.stroke();
+    // ring warning: reds currently riding YOUR ring glow at their angle
+    if(i===S.e.ring){
+      for(const q of S.photons){
+        if(q.ring===i){
+          ctx.strokeStyle='rgba(255,90,120,0.5)';ctx.lineWidth=3;
+          ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,rot,q.angle-0.12,q.angle+0.12);ctx.stroke();
+        }
+      }
+    }
+  }
+
+  // core: glow ∝ power, calm pulse in sanctuary, decays at the end
+  let nr=minR*0.55;
+  const pf=clamp(S.power/pTarget(),0,1);
+  let coreFlick=1;
+  if(S.sanc){
+    const rem=S.sanc.dur-S.sanc.t;
+    coreFlick=(rem<3?0.6+0.4*Math.sin(t*22):1)*(0.9+0.1*Math.sin(t*1.2));
+  }
+  const coreScale=(0.5+0.5*pf)*coreFlick;
+  const cR=nr*coreScale;
+  // 3D body: tilt it with the innermost orbital plane it sits on
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.rotate(RING_POSE.rot[0]);
+  ctx.scale(POSE.breath,RING_POSE.sq[0]*POSE.breath);
+  glow(0,0,nr*2.6*coreScale,'rgba(255,210,255,'+(0.14+0.2*pf)+')','rgba(120,60,200,0)');
+  // sphere lit from above: bright center offset up, dark rim below
+  const body=ctx.createRadialGradient(-cR*0.35,-cR*0.45,0,0,0,cR*1.05);
+  body.addColorStop(0,pf>0.4?'#ffffff':'#e8dcff');
+  body.addColorStop(0.45,pf>0.4?'#fff':'#c8b4ff');
+  body.addColorStop(0.85,'#8f6fd8');
+  body.addColorStop(1,'rgba(120,60,200,0.25)');
+  ctx.fillStyle=body;
+  ctx.beginPath();ctx.arc(0,0,cR,0,TAU);ctx.fill();
+  for(const q of S.pulses){
+    const pr=coreR+(1-q.life)*gap*1.5;
+    ctx.strokeStyle='rgba(180,160,255,'+q.life*0.5+')';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(0,0,pr,0,TAU);ctx.stroke();
+  }
+  ctx.restore();
+
+  // photons (position derived from ring + angle) — reds in the sanctuary band are
+  // absorbed by update() before this runs, so they always render as live threats here
+  for(const q of S.photons){
+    const qp=pPos(q);
+    for(const t of (q.trail||[])){ // motion trail (visible, but quieter than the electron's)
+      if(t.life<=0)continue;
+      ctx.globalAlpha=t.life*0.4;ctx.fillStyle='#ff4d6a';
+      ctx.beginPath();ctx.arc(t.x,t.y,0.8+t.life*2.2,0,TAU);ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    glow(qp.x,qp.y,20,'rgba(255,77,106,0.45)','rgba(255,77,106,0)');
+    ctx.fillStyle='#2a0a14';ctx.beginPath();ctx.arc(qp.x,qp.y,5,0,TAU);ctx.fill();
+    // small motion cue showing orbit direction
+    ctx.strokeStyle='rgba(255,120,150,0.35)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(qp.x,qp.y,8,q.angle,q.angle+0.7*Math.sign(q.angVel));ctx.stroke();
+  }
+
+  // gold (position derived from ring + angle) — behaves the same inside or
+  // outside the sanctuary, so it always renders as a live gold packet
+  for(const g of S.golds){
+    const gp=pPos(g);
+    for(const t of (g.trail||[])){ // motion trail (visible, but quieter than the electron's)
+      if(t.life<=0)continue;
+      ctx.globalAlpha=t.life*0.35;ctx.fillStyle='#ffd97a';
+      ctx.beginPath();ctx.arc(t.x,t.y,0.7+t.life*2,0,TAU);ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    glow(gp.x,gp.y,14,'rgba(255,217,122,0.5)','rgba(255,217,122,0)');
+    ctx.fillStyle='#fff6dd';ctx.beginPath();ctx.arc(gp.x,gp.y,3.5,0,TAU);ctx.fill();
+  }
+
+  // quasar (distinct beacon, position derived from ring + angle)
+  if(S.quasar){
+    const q=S.quasar,qp=pPos(q),pr=6+3*Math.sin(q.ph);
+    glow(qp.x,qp.y,pr*4,'rgba(159,220,255,0.55)','rgba(159,220,255,0)');
+    ctx.strokeStyle='rgba(220,245,255,0.8)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(qp.x,qp.y,pr,0,TAU);ctx.stroke();
+    ctx.fillStyle='#eafaff';ctx.beginPath();ctx.arc(qp.x,qp.y,2.5,0,TAU);ctx.fill();
+  }
+
+  // electron (+ god-mode glow)
+  for(const tr of S.e.trail){
+    if(tr.life<=0)continue;
+    ctx.globalAlpha=tr.life*0.35;ctx.fillStyle=S.godActive?'#ffe9a8':'#57e6ff';
+    ctx.beginPath();ctx.arc(tr.x,tr.y,1+tr.life*3,0,TAU);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  const p=ePos();
+  const blink=S.invuln>0&&Math.floor(S.invuln*10)%2===0;
+  if(!blink){
+    glow(p.x,p.y,S.godActive?52:34,S.godActive?'rgba(255,233,168,0.6)':'rgba(87,230,255,0.5)',S.godActive?'rgba(255,200,90,0)':'rgba(87,230,255,0)');
+    ctx.fillStyle=S.godActive?'#fff6dd':'#eaffff';ctx.beginPath();ctx.arc(p.x,p.y,S.godActive?6.5:5,0,TAU);ctx.fill();
+  }
+
+  for(const q of S.parts){ctx.globalAlpha=q.life/q.max*0.8;ctx.fillStyle=q.col;ctx.beginPath();ctx.arc(q.x,q.y,q.size,0,TAU);ctx.fill();}
+  ctx.globalAlpha=1;
+
+  // power-event FX: out = losing, in = gaining
+  for(const q of S.shocks){
+    const k=Math.min(1,q.t/q.dur);
+    const e=q.inward?k*k:1-Math.pow(1-k,3);
+    const r=q.inward?lerp(q.max,q.min,e):lerp(q.min,q.max,e);
+    ctx.strokeStyle='rgba('+q.rgb+','+(0.5*(1-k))+')';
+    ctx.lineWidth=(q.inward?2:3)*(1-k)+0.5;
+    ctx.beginPath();
+    if(q.plane){const si=q.ring||0;ctx.ellipse(q.x,q.y,r*POSE.breath,r*RING_POSE.sq[si]*POSE.breath,RING_POSE.rot[si],0,TAU);}
+    else ctx.arc(q.x,q.y,r,0,TAU);
+    ctx.stroke();
+  }
+  for(const q of S.sucks){
+    const k=Math.min(1,q.t/q.dur),ee=k*k,a=q.a+ee*1.2;
+    const r=q.r0*(1-ee); // cosmic: a circular pull from the background into the core
+    const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;
+    ctx.globalAlpha=(1-k)*0.9;
+    ctx.fillStyle='#ffe9a8';
+    ctx.beginPath();ctx.arc(x,y,1.5,0,TAU);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  ctx.globalCompositeOperation='source-over';
+  if(S.flash>0){ctx.fillStyle='rgba(255,60,90,'+S.flash*0.25+')';ctx.fillRect(0,0,W,H);}
+  if(S.gflash>0){ctx.fillStyle='rgba(255,200,110,'+S.gflash*0.2+')';ctx.fillRect(0,0,W,H);}
+}
+
+// ---------- loop ----------
+let last=performance.now();
+function loop(now){
+  const dt=Math.min(0.05,(now-last)/1000);last=now;
+  POSE=poseOf(now/1000);
+  try{
+    if(!S.paused)update(dt);
+    draw(now/1000);
+  }catch(err){console.error('SORBITS frame error (loop continues):',err);}
+  requestAnimationFrame(loop); // always re-schedule: a bad frame must never freeze the game
+}
+resize();
+reset();S.paused=true;
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
