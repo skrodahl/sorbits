@@ -83,7 +83,7 @@ blocks that run in lockstep (see `docs/decisions.md` D11–D15):
   Pressure comes from pace and the growing gauge target, never from a
   screen-filling wall of reds.
 
-The feel targets, in the designer's words: L1–10 should be a readable climb
+The feel targets: L1–10 is a readable climb
 with L10 as the "boss level"; crossing it grants relief (speed reset) plus
 one more red on the board.
 
