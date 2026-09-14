@@ -33,6 +33,9 @@ export const C = {
   popupRise: 55,                // popup rise speed (px/s) — how far the numbers float up
   photonTrail: 0.5,
 
+  // ---- lives (hearts): losing power drops a heart and revives with base power; +1 heart every 10 levels
+  livesStart: 3, livesMax: 5, livesLevelStep: 10,
+
   // ---- sanctuary (quasar-triggered): an intuitive, cost-free escape window (see decisions D4)
   sancFloor: 6, sancDivisor: 24, sancHalf: 0.62, sancOrbit: 0.22, sancWobble: 0.14,
 

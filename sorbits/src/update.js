@@ -54,12 +54,29 @@ function finalizeLevelUp() {
   S.photons.length = 0; S.golds.length = 0; S.quasar = null;
   S.level++; S.ups++;
   S.power = C.resetFraction * pTarget();
+  if (S.level % C.livesLevelStep === 0 && S.lives < C.livesMax) { // +1 heart every 10 levels (capped)
+    S.lives++;
+    popup(cx, cy + 22, '+1 LIFE', '#ff8fa0', 30, 2.0);
+  }
   S.envTone = 1; S.coreFlare = 1; // the atom surges into its new level
   S.ringWaves.push({ t: 0, dur: 0.9, r0: coreR, r1: ringR[N - 1], rgb: '255,217,122', a: 0.6 });
   popup(cx, cy - 10, 'LEVEL ' + S.level, '#5fe6ff', 48, 2.0);
   shockFX('in'); sLevelUp();
   S.collecting = null;
   S.slowT = 0; // snap back to full speed exactly as the new level begins
+}
+
+// power depletion: with a heart left, lose it and revive with base power + brief invulnerability; at zero, game over
+function die() {
+  if (S.lives > 0) {
+    S.lives--;
+    S.power = C.resetFraction * pTarget();
+    S.invuln = 5; S.slowT = 1; S.shake = 18; // slow-mo + hard shake: the loss must be felt
+    S.ringWaves.push({ t: 0, dur: 0.8, r0: ringR[N - 1], r1: coreR * 0.5, rgb: '255,93,122', a: 0.7 });
+    const p = ePos();
+    burst(p.x, p.y, 30, '#ff4d6a', 3);
+    popup(cx, cy, 'LIFE LOST', '#ff4d6a', 44, 2.2);
+  } else gameOver();
 }
 
 export function update(dt) {
@@ -104,7 +121,7 @@ export function update(dt) {
   if (!S.collecting) {
     S.power -= drainOf() * pTarget() * sdt;
     S.lastDamage = 'decay';
-    if (S.power <= 0) { S.power = 0; shockFX('decay'); sLose(); gameOver(); return; }
+    if (S.power <= 0) { S.power = 0; shockFX('decay'); sLose(); die(); return; }
   }
 
   // power packets ride out of the core (reliable supply, scales up with level)
@@ -177,7 +194,7 @@ export function update(dt) {
         burst(p.x, p.y, 18, '#ff4d6a', 2.4);
         popup(qp.x, qp.y - 14, 'DAMAGE', '#ff4d6a', 24, 1.5);
         sHit(); sLose();
-        if (S.power <= 0) { gameOver(); return; }
+        if (S.power <= 0) { die(); return; }
       }
     }
   }
@@ -314,6 +331,7 @@ export function update(dt) {
   $('score').textContent = Math.floor(S.score);
   $('time').textContent = Math.floor(S.t) + 's';
   $('lvl').textContent = 'LEVEL ' + S.level;
+  $('lives').innerHTML = '♥'.repeat(S.lives) + (S.lives < C.livesMax ? '<span class="off">' + '♡'.repeat(C.livesMax - S.lives) + '</span>' : '');
   {
     const pf = S.power / pTarget(), gc = gaugeColor(pf);
     $('gfill').style.width = clamp(pf * 100, 0, 100) + '%';
@@ -327,7 +345,8 @@ export function update(dt) {
     $('dev').innerHTML = 'T ' + Math.floor(S.t) + 's · LVL ' + S.level + ' · UP ' + S.ups +
       '<br>PWR <b>' + S.power.toFixed(2) + '</b> / ' + pTarget().toFixed(2) + ' · HEAT ' + S.heat.toFixed(2) +
       '<br>DRAIN ' + drain.toFixed(3) + '/s · PHOTONS ' + S.photons.length + ' · GOLD ' + S.golds.length +
-      '<br>DEATHS ' + S.deaths + (S.deathCause ? ' (' + S.deathCause + ')' : '');
+      '<br>DEATHS ' + S.deaths + (S.deathCause ? ' (' + S.deathCause + ')' : '') +
+      '<br>LIVES ' + S.lives;
   }
 }
 

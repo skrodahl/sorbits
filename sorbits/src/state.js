@@ -7,6 +7,7 @@ import { ringR, N, project, angDiff } from './geometry.js';
 export const S = {
   over: false, paused: false, t: 0, score: 0, goldGot: 0,
   power: C.resetFraction * C.targetBase, level: 1, heat: 0.25,
+  lives: C.livesStart,
   ups: 0, deaths: 0, deathCause: null,
   invuln: 0, slowT: 0, shake: 0, lastDamage: null, pump: 0,
   envTone: 0, coreRecoil: 0, coreFlare: 0, // environment reactions: +surge / −wound, core flinch / flare
@@ -26,7 +27,7 @@ export const dev = { on: false };           // dev stats overlay toggle (F)
 export function reset() {
   S.over = false; S.t = 0; S.score = 0; S.goldGot = 0;
   S.level = 1; S.power = C.resetFraction * pTarget(); S.heat = 0.25;
-  S.ups = 0;
+  S.lives = C.livesStart; S.ups = 0;
   S.invuln = 1.2; S.slowT = 0; S.shake = 0; S.lastDamage = null; S.pump = 0;
   S.envTone = 0; S.coreRecoil = 0; S.coreFlare = 0;
   S.collecting = null;

@@ -21,6 +21,8 @@
   #hud .row{position:absolute;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:16px 24px}
   #hud .top{top:0}#hud .bot{bottom:0;align-items:flex-end}
   #lvl{font-size:24px;font-weight:300;letter-spacing:3px;color:#5fe6ff;text-shadow:0 0 16px rgba(95,230,255,.6)}
+  #lives{font-size:15px;letter-spacing:4px;color:#ff4d6a;text-shadow:0 0 9px rgba(255,77,106,.7);margin-top:6px}
+  #lives .off{color:rgba(255,77,106,.28);text-shadow:none}
   #score{font-size:38px;font-weight:200;letter-spacing:2px;color:#fff;text-shadow:0 0 18px rgba(95,230,255,.6);text-align:right;line-height:1}
   #time{font-size:28px;font-weight:200;letter-spacing:2px;color:#cfe6ff;text-shadow:0 0 12px rgba(160,200,255,.55);text-align:right;margin-top:2px}
   #pw{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;z-index:5}
@@ -57,7 +59,7 @@
 
 <div id="hud">
   <div class="row top">
-    <div><span id="lvl">LEVEL 1</span></div>
+    <div><span id="lvl">LEVEL 1</span><div id="lives">♥♥♥<span class="off">♡♡</span></div></div>
     <div><div id="score">0</div><div id="time">0s</div></div>
   </div>
   <div class="row bot"><span></span><div id="sanc">SANCTUARY</div></div>
