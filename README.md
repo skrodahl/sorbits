@@ -5,6 +5,8 @@ electron inside a living atom: dodge red photons, harvest gold power packets
 spat out of the core, and keep the atom's coherence (power) gauge from hitting
 zero. No framework — plain ES modules, Canvas 2D, and Web Audio.
 
+![screenshots/sorbits.jpg](Action Shot!)
+
 ## Launching
 
 The game lives in `sorbits/`. Requirements: Node.js (dev dependency: Vite only).
