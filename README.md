@@ -23,7 +23,7 @@ npm run dev -- --port 3333 --strictPort
 - **Local:** open the printed URL (`http://localhost:3333`) and click to play.
 - **Remote (NetBird):** the dev server binds all interfaces with
   `allowedHosts: true` (`sorbits/vite.config.js`), so on the NetBird network it
-  is reachable at **`http://ai-skrodahl.netbird.cloud:3333`**.
+  is reachable at **`http://<your-hostname>.netbird.cloud:3333`**.
 - **Production build:** `npm run build` writes `sorbits/dist/` with relative
   asset paths (`base: './'`), so it runs from any static host;
   `npm run preview` serves the build locally for a smoke test.
