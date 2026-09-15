@@ -18,6 +18,8 @@ Levels are really easy, and get gradually harder. Until you clear level 10.
 Then it goes back to the same difficulty as level 1. But there is one more,
 deadly, red photon in play...
 
+There's more for you to discover, the quasar is really helpful!
+
 The game is nothing like, but still drawing inspiration from, the
 arcade game [Tempest](https://en.wikipedia.org/wiki/Tempest_(video_game)).
 
