@@ -11,7 +11,7 @@ zero. No framework — plain ES modules, Canvas 2D, and Web Audio.
 
 ## Background
 
-This is a casual, fast-paced game of skill. It really is designed to be
+This is a casual, fast-paced game of skill. It is designed to be
 something you can get really good at.
 
 Levels are really easy, and get gradually harder. Until you clear level 10.
@@ -22,7 +22,6 @@ There's more for you to discover, the quasar is really helpful!
 
 The game is nothing like, but still drawing inspiration from, the
 arcade game [Tempest](https://en.wikipedia.org/wiki/Tempest_(video_game)).
-
 This project is 100% AI coded, to explore what my local instance of Qwen 3.8
 27B can actually do.
 
