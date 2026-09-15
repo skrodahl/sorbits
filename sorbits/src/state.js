@@ -40,23 +40,26 @@ export function reset() {
 }
 
 // ---- rules helpers (depend on S + C) ----
-export function pTarget() { return C.targetBase * Math.pow(C.targetGrowth, S.level - 1); } // "full" mark for the current level
+// position within the current 10-level block (0..9) — ALL difficulty ramps run on this,
+// so each 10-level block mirrors the last: same gauge size, heat, supply, and speed,
+// with only the red cap stepping up (D16)
+export function cyclePos() { return (S.level - 1) % C.speedCycleLen; }
+export function pTarget() { return C.targetBase * Math.pow(C.targetGrowth, cyclePos()); } // "full" mark for the current level
 export function drainOf() { return C.drainBase + C.drainHeatSlope * clamp(S.heat, 0, 1.5); } // drain (frac of target/s): gentle early → steep late
-export function goldSpawnIv() { return Math.max(1.2, C.goldSpawn * (1 - C.goldSpawnLvlDecay * (S.level - 1))); } // supply scales up with level
-export function effGoldMax() { return Math.min(7, C.goldMax + C.goldMaxLvlGrow * (S.level - 1)); }
+export function goldSpawnIv() { return Math.max(1.2, C.goldSpawn * (1 - C.goldSpawnLvlDecay * cyclePos())); } // supply scales up within the block
+export function effGoldMax() { return Math.min(7, C.goldMax + C.goldMaxLvlGrow * cyclePos()); }
 export function effPhotonMax() { // D15: red cap — base for L1–10, +1 per 10-level block
   return C.photonMaxBase + Math.floor((S.level - 1) / C.photonMaxCycle); }
 export function angVelOf(heat) { // D14: 10-tier sawtooth speed cycle + absolute cap
   const dir = Math.random() < 0.5 ? -1 : 1;
-  const cyclePos = (S.level - 1) % C.speedCycleLen; // position within the current 10-level block (0..9)
-  const tier = C.speedLvlBase + (C.speedPeakFactor - C.speedLvlBase) * (cyclePos / (C.speedCycleLen - 1));
+  const tier = C.speedLvlBase + (C.speedPeakFactor - C.speedLvlBase) * (cyclePos() / (C.speedCycleLen - 1));
   const heatM = C.heatSpeedFloor + C.heatSpeedSlope * clamp(heat, 0, 1.3); // flattened: surges nudge, no lurch
   return dir * Math.min(C.angVelAbsMax, rand(C.angVelMin, C.angVelMax) * heatM * tier); }
 export function stayRad(type) {
   let o;
-  if (type === 'gold') o = rand(C.goldOrbitsMin, C.goldOrbitsMax) * Math.max(0.35, 1 - C.goldStayLvlDecay * (S.level - 1));
+  if (type === 'gold') o = rand(C.goldOrbitsMin, C.goldOrbitsMax) * Math.max(0.35, 1 - C.goldStayLvlDecay * cyclePos());
   else if (type === 'quasar') o = rand(C.quasarOrbitsMin, C.quasarOrbitsMax);
-  else o = rand(C.redOrbitsMin, C.redOrbitsMax) * (1 + C.redStayLvlGrow * (S.level - 1));
+  else o = rand(C.redOrbitsMin, C.redOrbitsMax) * (1 + C.redStayLvlGrow * cyclePos());
   return o * TAU;
 }
 export function inSanc(angle) { return S.sanc && Math.abs(angDiff(angle, S.sanc.angle)) < C.sancHalf; }

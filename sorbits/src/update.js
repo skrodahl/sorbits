@@ -1,4 +1,4 @@
-import { S, keys, dev, pTarget, drainOf, goldSpawnIv, effGoldMax, effPhotonMax, stayRad, angVelOf, inSanc, ePos, gameOver } from './state.js';
+import { S, keys, dev, pTarget, drainOf, goldSpawnIv, effGoldMax, effPhotonMax, stayRad, angVelOf, inSanc, ePos, gameOver, cyclePos } from './state.js';
 import { C, gaugeColor } from './config.js';
 import { TAU, clamp, lerp, $ } from './utils.js';
 import { ringR, N, maxR, project, pPos, cx, cy, coreR, W, H } from './geometry.js';
@@ -97,8 +97,8 @@ export function update(dt) {
   S.pump = Math.max(0, S.pump - sdt); // core pump (compress -> expand -> spit)
   tickToasts(dt);
 
-  // heat model: base (level) + surge envelope
-  const baseH = Math.min(1, 0.25 + (S.level - 1) * 0.22);
+  // heat model: base (block position) + surge envelope
+  const baseH = Math.min(1, 0.25 + cyclePos() * 0.22); // ramps within the 10-level block, resets at the block edge (D16)
   S.surgeT -= sdt;
   if (S.surgeT <= 0) { S.surge = 3.5; S.surgeT = 9 + Math.random() * 5; }
   if (S.surge > 0) S.surge = Math.max(0, S.surge - sdt);
@@ -356,7 +356,7 @@ const matSeeds = () => Array.from({ length: C.matMotes }, () => ({ a: Math.rando
 export function spawnPhoton() {
   const a = Math.random() * TAU;
   S.photons.push({ ring: N - 1, angle: a, angVel: angVelOf(S.heat), stay: stayRad('photon'), trail: [], r: ringR[N - 1], matT: C.matDur, matSeeds: matSeeds(), vibe: 0 });
-  if (S.level >= C.photonCompanionLvl && Math.random() < C.photonCompanionChance && S.photons.length < effPhotonMax()) // later levels: a close companion on the same ring (never past the cap)
+  if (cyclePos() + 1 >= C.photonCompanionLvl && Math.random() < C.photonCompanionChance && S.photons.length < effPhotonMax()) // later levels of the block: a close companion on the same ring (never past the cap)
     S.photons.push({ ring: N - 1, angle: a + 0.25, angVel: angVelOf(S.heat), stay: stayRad('photon'), trail: [], r: ringR[N - 1], matT: C.matDur, matSeeds: matSeeds(), vibe: 0 });
 }
 // which ring a gold is "emitted to": a weighted-random (inner-heavy) so the outer orbits

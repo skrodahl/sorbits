@@ -342,3 +342,32 @@ function instead of a constant wall.
    (a block's slow tier is sparse *and* slow; its peak tier is dense *and*
    fast). The helper is in `state.js`; the cap gate (spawner + companion) is in
    `update.js`. Values in `config.js` (`photonMaxBase`, `photonMaxCycle`).
+
+## D16 — The 10-level block is the difficulty cycle: everything resets, only the red cap steps (2026-09)
+
+D14/D15 reset the *speed* tier and step the *red cap* every 10 levels, but the
+power economy still ran on **absolute level**: the gauge target compounded
+(`1.25^(L−1)` → L11's gauge was 9.3× L1's), base heat clamped at 1.0 from L4,
+gold supply and particle dwell scaled with absolute level. So block 2 (L11–20)
+was strictly harder than block 1 — the L12 gauge net-fill rate even went
+negative (catch-everything supply < drain), making the meter near-unfillable.
+
+- **Decision:** ALL difficulty ramps run on `cyclePos() = (level−1) %
+  speedCycleLen`, not absolute level: `pTarget()`, base heat, gold spawn
+  interval, gold on-board cap, gold/red dwell, and the companion-spawn gate.
+  Each 10-level block now **mirrors the previous one exactly** — same gauge
+  sizes, heat curve, supply, and speeds — with the **only** block-to-block step
+  being the red cap (+1, D15).
+- **In-block shape unchanged:** L1–10 play is identical to pre-D16 (within a
+  block `cyclePos == level−1`): the gauge grows ×1.25/level, heat ramps up and
+  clamps, gold supply accelerates, and the speed tier climbs to the cap — a
+  gentle-start, steep-close block, repeated.
+- **Why:** the designer's read — "level 11–20 should have exactly the same
+  difficulty as 1–10, the only difference being that a 4th red can be on
+  board." Difficulty rises as a readable step function (the red cap), not a
+  one-way ratchet in the economy.
+- **Superseded:** the economy levers' "per level" comments now mean "per level
+  *within the block*"; `photonCompanionLvl` is a 1-based block-position gate.
+  Values: `config.js` (`speedCycleLen` is the block length); helpers in
+  `state.js` (`cyclePos`, `pTarget`, `goldSpawnIv`, `effGoldMax`, `stayRad`,
+  `angVelOf`); base heat + companion gate in `update.js`.
