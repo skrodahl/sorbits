@@ -15,8 +15,8 @@ This is a casual, fast-paced game of skill. It really is designed to be
 something you can get really good at.
 
 Levels are really easy, and get gradually harder. Until you clear level 10.
-Then it goes back to the same difficulty as level 1. But there is one more red
-photon in play...
+Then it goes back to the same difficulty as level 1. But there is one more,
+deadly, red photon in play...
 
 The game is nothing like, but still drawing inspiration from, the
 arcade game [Tempest](https://en.wikipedia.org/wiki/Tempest_(video_game)).
