@@ -1,11 +1,22 @@
 # SORBITS
 
+- A casual game
+
 **Keep the atom coherent.** A single-player browser game where you pilot one
 electron inside a living atom: dodge red photons, harvest gold power packets
 spat out of the core, and keep the atom's coherence (power) gauge from hitting
 zero. No framework — plain ES modules, Canvas 2D, and Web Audio.
 
 ![Action Shot!](screenshots/sorbits.jpg)
+
+## Background
+
+This is a casual, fast-paced game of skill. It either ends way too soon, or you can
+get really good at. It is nothing like, but still drawing inspiration from the
+arcade game [Tempest](https://en.wikipedia.org/wiki/Tempest_(video_game).
+
+It is 100% AI coded, to explore what my local instance of Qwen 3.8 27B can
+actually do.
 
 ## Launching
 
